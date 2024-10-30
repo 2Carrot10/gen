@@ -1,0 +1,54 @@
+#!/home/twocarrot10/Documents/programs/ollamaWrapper/.venv/bin/python
+import requests
+import json
+import sys
+import argparse
+
+parser = argparse.ArgumentParser()
+
+#parser.add_argument("ai", nargs='?', help="select codellama, codellamacomplete, qwen, or phi3")
+parser.add_argument("-a", "--append", action="store_true", help="Weather or not it should append to the end.")
+
+parser.add_argument("-m", "--model", nargs="?", help="Choose qwen codellama, codellamacomplete, phi3")
+
+parser.add_argument("-i", "--input", nargs="?", help="Optionally use this instead of inputing through STDIN")
+args = parser.parse_args()
+
+ai = "qwen2.5-coder:1.5b"
+
+if args.model is not None:
+    if args.model == "qwen":
+        ai = "qwen2.5-coder:1.5b"
+    if args.model == "codellama":
+        ai = "codellama:7b"
+    elif args.model == "codellamacomplete":
+        ai = "codellama:7b-code"
+    elif args.model == "phi3":
+        ai = "phi3:mini"
+    else:
+        ai = args.model
+
+args = parser.parse_args()
+
+input = ""
+if args.input is None:
+    for line in sys.stdin:
+        input = input + line
+else:
+    input = args.input
+
+url = "http://localhost:11434/api/generate" #https://127.0.0.1/
+
+# Create the data payload
+data = dict(
+    model=ai, #"codellama:7b",#"qwen2.5-coder:1.5b"
+    prompt=input,
+    stream=False
+)
+
+# Send the POST request
+response = requests.post(url=url, json=data)
+text = json.loads(response.text).get("response")
+if args.append:
+    print(input)
+print(text)
