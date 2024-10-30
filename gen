@@ -8,21 +8,25 @@ import time
 import subprocess
 import re
 
-ai = "qwen2.5-coder:1.5b"
+default_ai = "qwen2.5-coder:1.5b"
+ai = default_ai
 
-parser = argparse.ArgumentParser()
+parser = argparse.ArgumentParser(description="""
+Run ollama LLMs from the terminal.
+""")
 parser.add_argument("-a", "--append", action="store_true",
-                    help="Weather or not it should append to the end.")
+                    help="Append to the end of input")
 parser.add_argument("-m", "--model", nargs="?",
-                    help="Choose qwen codellama, code, phi3")
+                    help="Choose what AI to use. Default")
 parser.add_argument("-i", "--input", nargs="?",
                     help="Optionally use instead of inputing through STDIN")
 parser.add_argument("-e", "--explain", nargs="?",
                     help="Give info in addition to inputing through STDIN")
 parser.add_argument("-q", "--quote", action="store_true",
-                    help="Put all text in a block quote")
+                    help="Format generated text as a block quote with AI citation.")
+parser.add_argument("-l", "--list", action="store_true",
+                    help="list all useable AIs")
 args = parser.parse_args()
-
 
 if args.model is not None:
     if args.model == "qwen":
@@ -35,6 +39,10 @@ if args.model is not None:
         ai = "phi3:mini"
     else:
         ai = args.model
+
+
+def listModels():
+    subprocess.run("ollama list", shell=True)
 
 
 def generate():
@@ -66,22 +74,27 @@ def generate():
     if args.quote:
         text = re.sub('\n', '\n\t', text)
         text = ">\t" + text
+        text = text + f"\n -{ai}"
     if args.append:
         output = output + input + "\n"
     output = output + text
     return output
 
 
-def tryGenerate():
+def tryProc():
     try:
-        return generate()
+        if args.list:
+            listModels()
+        else:
+            print(generate())
     except Exception:
         print("\n")
 
 
+process = None
+
 try:
     requests.get(url="http://localhost:11434/")
-    print(tryGenerate())
 except Exception:
     subprocess._PopenSelector
     process = subprocess.Popen(['ollama', 'serve'],
@@ -93,7 +106,9 @@ except Exception:
             break
         except Exception:
             time.sleep(.01)
-    print(tryGenerate())
+
+tryProc()
+
+if process is not None:
     process.terminate()
     process.wait()
-
