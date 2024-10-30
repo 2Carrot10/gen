@@ -43,7 +43,10 @@ def generate():
     if args.input is None:
         for line in sys.stdin:
             input = input + line
-        inputAndExplination = args.explain + "\n" + input
+        if args.explain is not None:
+            inputAndExplination = args.explain + "\n" + input
+        else:
+            inputAndExplination = input
     else:
         input = args.input
         inputAndExplination = input  # There is no extra explanation to give
