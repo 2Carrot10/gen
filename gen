@@ -1,54 +1,73 @@
 #!/home/twocarrot10/Documents/programs/ollamaWrapper/.venv/bin/python
+# change this to match your project dir
 import requests
 import json
 import sys
 import argparse
+import time
+import subprocess
 
-parser = argparse.ArgumentParser()
+def generate():
 
-#parser.add_argument("ai", nargs='?', help="select codellama, codellamacomplete, qwen, or phi3")
-parser.add_argument("-a", "--append", action="store_true", help="Weather or not it should append to the end.")
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-a", "--append", action="store_true", help="Weather or not it should append to the end.")
+    parser.add_argument("-m", "--model", nargs="?", help="Choose qwen codellama, code, phi3")
+    parser.add_argument("-i", "--input", nargs="?", help="Optionally use this instead of inputing through STDIN")
+    args = parser.parse_args()
 
-parser.add_argument("-m", "--model", nargs="?", help="Choose qwen codellama, codellamacomplete, phi3")
+    ai = "qwen2.5-coder:1.5b"
 
-parser.add_argument("-i", "--input", nargs="?", help="Optionally use this instead of inputing through STDIN")
-args = parser.parse_args()
+    if args.model is not None:
+        if args.model == "qwen":
+            ai = "qwen2.5-coder:1.5b"
+        if args.model == "codellama":
+            ai = "codellama:7b"
+        elif args.model == "code":
+            ai = "codellama:7b-code"
+        elif args.model == "phi3":
+            ai = "phi3:mini"
+        else:
+            ai = args.model
 
-ai = "qwen2.5-coder:1.5b"
+    args = parser.parse_args()
 
-if args.model is not None:
-    if args.model == "qwen":
-        ai = "qwen2.5-coder:1.5b"
-    if args.model == "codellama":
-        ai = "codellama:7b"
-    elif args.model == "codellamacomplete":
-        ai = "codellama:7b-code"
-    elif args.model == "phi3":
-        ai = "phi3:mini"
+    input = ""
+    if args.input is None:
+        for line in sys.stdin:
+            input = input + line
     else:
-        ai = args.model
+        input = args.input
 
-args = parser.parse_args()
+    url = "http://localhost:11434/api/generate"
 
-input = ""
-if args.input is None:
-    for line in sys.stdin:
-        input = input + line
-else:
-    input = args.input
+    data = dict(
+        model=ai,
+        prompt=input,
+        stream=False
+    )
+    print(requests.get(url="http://localhost:11434/"))
 
-url = "http://localhost:11434/api/generate" #https://127.0.0.1/
+    response = requests.post(url=url, json=data)
 
-# Create the data payload
-data = dict(
-    model=ai, #"codellama:7b",#"qwen2.5-coder:1.5b"
-    prompt=input,
-    stream=False
-)
+    print(ai)
+    text = json.loads(response.text).get("response")
+    if args.append:
+        print(input)
+    print(text)
 
-# Send the POST request
-response = requests.post(url=url, json=data)
-text = json.loads(response.text).get("response")
-if args.append:
-    print(input)
-print(text)
+
+try:
+    requests.get(url="http://localhost:11434/")
+    generate()
+except Exception:
+    subprocess._PopenSelector
+    with subprocess.Popen(['ollama', 'serve'],
+                          stdout=subprocess.DEVNULL,
+                          stderr=subprocess.DEVNULL):
+        while True:
+            try:
+                requests.get(url="http://localhost:11434/")
+                break
+            except Exception:
+                time.sleep(.01)
+        generate()
